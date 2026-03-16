@@ -1,0 +1,80 @@
+@startuml
+
+title Диаграмма контейнеров Кинобездна
+
+top to bottom direction
+
+!include <C4/C4_Component>
+!include <C4/C4_Context>
+!include <C4/C4_Container>
+
+Person(User, "Клиент")
+
+System_Ext(RecomSys, "Pекомендательная система", "Внешняя система, делает персональные подборки")
+System_Ext(PaymentGateway, "Платежный шлюз", "Внешний провайдер")
+System_Ext(EmailService, "Email-провайдер", "Внешний провайдер")
+System_Ext(PushService, "Push-провайдер", "Внешний провайдер")
+
+Boundary(ApiGateway, "API Gateway") {
+    Container(Gateway, "API Gateway", "Go/Kong/NGINX", "Единая точка входа, маршрутизация запросов, аутентификация")
+}
+
+Boundary(Catalog, "Домен: Каталог контента") {
+    Container(MoviesService, "Movies Service", "Go + PostgreSQL", "Управление метаданными фильмов, жанрами, актёрами")
+    Container(SearchService, "Search Service", "Go + Elasticsearch", "Полнотекстовый поиск по каталогу")
+}
+
+Boundary(Users, "Домен: Пользователи и взаимодействие") {
+    Container(AuthService, "Security & Access Service", "Go + PostgreSQL", "Регистрация, аутентификация, профили, устройства")
+    Container(PersonalizationService, "Personalization Service", "Go + PostgreSQL", "Избранное, оценки, история просмотров")
+    Container(PlayerService, "Player Service", "Go", "Выдача видео, сохранение прогресса")
+}
+
+Boundary(Billing, "Домен: Монетизация и биллинг") {
+    Container(SubscriptionsService, "Subscriptions Service", "Go + PostgreSQL", "Управление подписками, тарифами, статусами")
+    Container(PaymentsService, "Payments Service", "Go + PostgreSQL", "Проведение платежей, работа с внешними шлюзами")
+    Container(BillingService, "Billing Service", "Go + PostgreSQL", "Расчеты, налоги, чеки, учет")
+}
+
+Boundary(Integrations, "Домен: Интеграции") {
+    Container(RecommendationAdapter, "Recommendations Adapter", "Go", "Адаптер для внешней рекомендательной системы")
+}
+
+Boundary(Notifications, "Домен: Уведомления") {
+    Container(NotificationsService, "Notifications Service", "Go", "Слушает события, отправляет email/push/SMS")
+}
+
+Boundary(Infrastructure, "Инфраструктура") {
+    ContainerQueue(Kafka, "Kafka", "Брокер сообщений", "Асинхронная коммуникация между сервисами")
+}
+
+Rel(User, Gateway, "REST API", "HTTPS")
+
+Rel(Gateway, MoviesService, "GET /movies, /actors", "REST")
+Rel(Gateway, SearchService, "GET /search?q=", "REST")
+Rel(Gateway, AuthService, "POST /login, /register", "REST")
+Rel(Gateway, PersonalizationService, "GET /favorites, POST /ratings", "REST")
+Rel(Gateway, PlayerService, "GET /stream/{id}", "REST")
+Rel(Gateway, SubscriptionsService, "GET /subscriptions, POST /subscribe", "REST")
+Rel(Gateway, PaymentsService, "POST /payments", "REST")
+
+Rel(MoviesService, Kafka, "События об изменениях", "content.updated")
+Rel(Kafka, SearchService, " ")
+
+Rel_D(PersonalizationService, RecommendationAdapter, "Данные о действиях пользователя", "gRPC/HTTP")
+Rel_D(RecommendationAdapter, RecomSys, "Отправка данных", "RabbitMQ")
+Rel_U(RecomSys, RecommendationAdapter, "Запрос рекомендаций", "gRPC/HTTP")
+
+Rel(PaymentsService, PaymentGateway, "Проведение платежей", "HTTPS API")
+Rel(PaymentsService, Kafka, "Публикует события платежей", "payment.succeeded, payment.failed")
+
+BiRel(Kafka, SubscriptionsService, "Читает события платежей,\n публикует события подписок", "subscription.activated, subscription.expired")
+
+Rel(Kafka, NotificationsService, "Читает события", "*.succeeded, *.failed, *.activated")
+Rel(NotificationsService, EmailService, "Отправка email", "SMTP/HTTPS API")
+Rel(NotificationsService, PushService, "Отправка push", "HTTPS API")
+
+Rel_U(Kafka, BillingService, "Читает события платежей для учета", "payment.*")
+Rel(BillingService, PaymentsService, "Сверка данных", "REST (редко)")
+
+@enduml
