@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"io"
 	"net/http"
 )
 
@@ -12,10 +11,4 @@ func CopyHeaders(dst, src http.Header) {
 			dst.Add(key, value)
 		}
 	}
-}
-
-// CopyResponse копирует тело ответа
-func CopyResponse(w io.Writer, body io.ReadCloser) (int64, error) {
-	defer body.Close()
-	return io.Copy(w, body)
 }

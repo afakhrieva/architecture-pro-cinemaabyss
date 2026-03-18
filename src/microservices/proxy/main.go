@@ -21,17 +21,16 @@ func main() {
 	http.HandleFunc("/health", healthHandler.Handle)
 	http.HandleFunc("/proxy-status", healthHandler.Status)
 
-	// Обработчик для всех запросов
+	http.HandleFunc("/api/movies/health", moviesHandler.MoviesHealth)
+
+	// Общий обработчик для всех остальных /movies* путей
+	http.HandleFunc("/api/movies", func(w http.ResponseWriter, r *http.Request) {
+		moviesHandler.HandleMoviesMigration(w, r)
+	})
+
+	// Монолит обрабатывает всё остальное
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[Request] %s %s", r.Method, r.URL.Path)
-
-		// Все запросы к movies обрабатываем специально
-		if handlers.IsMoviesPath(r.URL.Path) {
-			moviesHandler.Handle(w, r)
-			return
-		}
-
-		// Все остальное идет в монолит
+		log.Printf("[Monolith] %s %s", r.Method, r.URL.Path)
 		moviesHandler.ProxyToMonolith(w, r)
 	})
 

@@ -26,20 +26,20 @@ func NewMoviesHandler(cfg *config.Config) *MoviesHandler {
 	}
 }
 
-// Handle обрабатывает запросы к movies с миграцией
-func (h *MoviesHandler) Handle(w http.ResponseWriter, r *http.Request) {
+// HandleMoviesMigration обрабатывает запросы к movies с миграцией
+func (h *MoviesHandler) HandleMoviesMigration(w http.ResponseWriter, r *http.Request) {
 	// Определяем, куда направить запрос
-	targetService := h.determineTarget(r.URL.Path, r.Method)
+	targetService := h.determineTarget(r.URL.Path, r.URL.RawQuery, r.Method)
 
 	var targetURL string
 	var shouldTransform bool
 
 	if targetService == "movies-service" {
-		targetURL = utils.BuildTargetURL(h.config.MoviesServiceURL, r.URL.Path, r.URL.RawQuery)
+		targetURL = BuildTargetURL(h.config.MoviesServiceURL, r.URL.Path, r.URL.RawQuery)
 		shouldTransform = true
 		log.Printf("[Movies Migration] -> новый сервис (%d%%): %s", h.config.MoviesMigrationPercent, targetURL)
 	} else {
-		targetURL = utils.BuildTargetURL(h.config.MonolithURL, r.URL.Path, r.URL.RawQuery)
+		targetURL = BuildTargetURL(h.config.MonolithURL, r.URL.Path, r.URL.RawQuery)
 		shouldTransform = false
 		log.Printf("[Movies Migration] -> монолит (%d%%): %s", 100-h.config.MoviesMigrationPercent, targetURL)
 	}
@@ -52,9 +52,17 @@ func (h *MoviesHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Migration-Percent", string(rune(h.config.MoviesMigrationPercent)))
 }
 
+// MoviesHealth обрабатывает запросы к /movies/health
+func (h *MoviesHandler) MoviesHealth(w http.ResponseWriter, r *http.Request) {
+	targetURL := BuildTargetURL(h.config.MoviesServiceURL, r.URL.Path, r.URL.RawQuery)
+	log.Printf("[Movies Health] -> (%d%%): %s", h.config.MoviesMigrationPercent, targetURL)
+
+	h.proxyRequest(w, r, targetURL, false)
+}
+
 // ProxyToMonolith проксирует любые запросы в монолит (без миграции)
 func (h *MoviesHandler) ProxyToMonolith(w http.ResponseWriter, r *http.Request) {
-	targetURL := utils.BuildTargetURL(h.config.MonolithURL, r.URL.Path, r.URL.RawQuery)
+	targetURL := BuildTargetURL(h.config.MonolithURL, r.URL.Path, r.URL.RawQuery)
 	log.Printf("[Monolith] %s %s -> %s", r.Method, r.URL.Path, targetURL)
 
 	// Все запросы в монолит идут без трансформации
@@ -63,14 +71,14 @@ func (h *MoviesHandler) ProxyToMonolith(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("X-Service-Used", "monolith")
 }
 
-// determineTarget определяет целевой сервис для movies
-func (h *MoviesHandler) determineTarget(path, method string) string {
+// determineTarget определяет целевой сервис для movies migration
+func (h *MoviesHandler) determineTarget(path, rawQuery, method string) string {
 	if !h.config.GradualMigration {
 		return "monolith"
 	}
 
 	// Только для GET запросов применяем процентную миграцию
-	if method == http.MethodGet && utils.ShouldRouteToNewService(h.config.MoviesMigrationPercent, path, method) {
+	if method == http.MethodGet && utils.ShouldRouteToNewService(h.config.MoviesMigrationPercent, path, rawQuery, method) {
 		return "movies-service"
 	}
 
@@ -129,7 +137,11 @@ func (h *MoviesHandler) proxyRequest(w http.ResponseWriter, r *http.Request, tar
 		r.Method, r.URL.Path, targetURL, resp.StatusCode, shouldTransform)
 }
 
-// IsMoviesPath проверяет, относится ли путь к фильмам
-func IsMoviesPath(path string) bool {
-	return utils.IsMoviesPath(path)
+// BuildTargetURL строит целевой URL для проксирования
+func BuildTargetURL(baseURL, path, rawQuery string) string {
+	target := baseURL + path
+	if rawQuery != "" {
+		target += "?" + rawQuery
+	}
+	return target
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // ShouldRouteToNewService определяет, должен ли запрос идти в новый сервис
-func ShouldRouteToNewService(percent int, path, method string) bool {
+func ShouldRouteToNewService(percent int, path, rawQuery, method string) bool {
 	if percent <= 0 {
 		return false
 	}
@@ -15,8 +15,7 @@ func ShouldRouteToNewService(percent int, path, method string) bool {
 	}
 
 	// Создаем ключ для консистентного хеширования
-	key := path + ":" + method
-
+	key := path + ":" + rawQuery + ":" + method
 	// Вычисляем хеш
 	hash := md5.Sum([]byte(key))
 	value := binary.BigEndian.Uint64(hash[:8])

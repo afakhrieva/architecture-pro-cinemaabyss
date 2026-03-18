@@ -49,7 +49,7 @@ func (h *HealthHandler) Status(w http.ResponseWriter, r *http.Request) {
 		"endpoints": []string{
 			"/health",
 			"/proxy-status",
-			"/api/movies/* (with migration)",
+			"/api/movies* (with migration)",
 			"/* (monolith)",
 		},
 	}
