@@ -10,16 +10,16 @@ import (
 	"proxy-service/utils"
 )
 
-// MoviesHandler обрабатывает все прокси-запросы
-type MoviesHandler struct {
+// ProxyHandler обрабатывает все прокси-запросы
+type ProxyHandler struct {
 	config      *config.Config
 	client      *http.Client
 	transformer *transformer.MovieTransformer
 }
 
-// NewMoviesHandler создает новый MoviesHandler
-func NewMoviesHandler(cfg *config.Config) *MoviesHandler {
-	return &MoviesHandler{
+// NewProxyHandler создает новый ProxyHandler
+func NewProxyHandler(cfg *config.Config) *ProxyHandler {
+	return &ProxyHandler{
 		config:      cfg,
 		client:      &http.Client{},
 		transformer: transformer.NewMovieTransformer(),
@@ -27,9 +27,9 @@ func NewMoviesHandler(cfg *config.Config) *MoviesHandler {
 }
 
 // HandleMoviesMigration обрабатывает запросы к movies с миграцией
-func (h *MoviesHandler) HandleMoviesMigration(w http.ResponseWriter, r *http.Request) {
+func (h *ProxyHandler) HandleMoviesMigration(w http.ResponseWriter, r *http.Request) {
 	// Определяем, куда направить запрос
-	targetService := h.determineTarget(r.URL.Path, r.URL.RawQuery, r.Method)
+	targetService := h.determineMoviesTarget(r.URL.Path, r.URL.RawQuery, r.Method)
 
 	var targetURL string
 	var shouldTransform bool
@@ -53,7 +53,7 @@ func (h *MoviesHandler) HandleMoviesMigration(w http.ResponseWriter, r *http.Req
 }
 
 // MoviesHealth обрабатывает запросы к /movies/health
-func (h *MoviesHandler) MoviesHealth(w http.ResponseWriter, r *http.Request) {
+func (h *ProxyHandler) MoviesHealth(w http.ResponseWriter, r *http.Request) {
 	targetURL := BuildTargetURL(h.config.MoviesServiceURL, r.URL.Path, r.URL.RawQuery)
 	log.Printf("[Movies Health] -> (%d%%): %s", h.config.MoviesMigrationPercent, targetURL)
 
@@ -61,7 +61,7 @@ func (h *MoviesHandler) MoviesHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // ProxyToMonolith проксирует любые запросы в монолит (без миграции)
-func (h *MoviesHandler) ProxyToMonolith(w http.ResponseWriter, r *http.Request) {
+func (h *ProxyHandler) ProxyToMonolith(w http.ResponseWriter, r *http.Request) {
 	targetURL := BuildTargetURL(h.config.MonolithURL, r.URL.Path, r.URL.RawQuery)
 	log.Printf("[Monolith] %s %s -> %s", r.Method, r.URL.Path, targetURL)
 
@@ -71,8 +71,8 @@ func (h *MoviesHandler) ProxyToMonolith(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("X-Service-Used", "monolith")
 }
 
-// determineTarget определяет целевой сервис для movies migration
-func (h *MoviesHandler) determineTarget(path, rawQuery, method string) string {
+// determineMoviesTarget определяет целевой сервис для movies migration
+func (h *ProxyHandler) determineMoviesTarget(path, rawQuery, method string) string {
 	if !h.config.GradualMigration {
 		return "monolith"
 	}
@@ -86,8 +86,17 @@ func (h *MoviesHandler) determineTarget(path, rawQuery, method string) string {
 	return "monolith"
 }
 
+func (h *ProxyHandler) ProxyToEvents(w http.ResponseWriter, r *http.Request) {
+	targetURL := BuildTargetURL(h.config.EventsServiceURL, r.URL.Path, r.URL.RawQuery)
+	log.Printf("[Events] %s %s -> %s", r.Method, r.URL.Path, targetURL)
+
+	h.proxyRequest(w, r, targetURL, false)
+
+	w.Header().Set("X-Service-Used", "events-service")
+}
+
 // proxyRequest единый метод для всех прокси-запросов
-func (h *MoviesHandler) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string, shouldTransform bool) {
+func (h *ProxyHandler) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string, shouldTransform bool) {
 	// Создаем запрос
 	proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
 	if err != nil {
