@@ -3,7 +3,7 @@ name: Docker Build and Push
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, cinema ]
     paths:
       - 'src/**'
       - '.github/workflows/docker-build-push.yml'
@@ -127,24 +127,5 @@ jobs:
           labels: ${{ steps.meta-proxy.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  trigger-api-tests:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: success()
-    steps:
-      - name: Trigger API Tests workflow
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'api-tests.yml',
-              ref: 'main',
-              inputs: {
-                environment: 'docker'
-              }
-            });
 
       
