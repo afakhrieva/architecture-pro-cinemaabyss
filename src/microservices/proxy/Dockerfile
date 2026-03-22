@@ -25,7 +25,7 @@ WORKDIR /root/
 COPY --from=builder /app/proxy-service .
 
 # Expose the application port
-EXPOSE 8081
+EXPOSE 8000
 
 # Command to run the executable
 CMD ["./proxy-service"]

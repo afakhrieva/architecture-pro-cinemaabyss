@@ -23,7 +23,7 @@ RUN ./gradlew clean build --no-daemon -x test
 RUN cp build/libs/*.jar app.jar
 
 # Порт
-EXPOSE 8080
+EXPOSE 8082
 
 # Запуск
 CMD ["java", "-jar", "app.jar"]
