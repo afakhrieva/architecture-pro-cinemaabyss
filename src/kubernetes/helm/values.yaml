@@ -5,7 +5,7 @@ global:
 
 # Image pull secrets
 imagePullSecrets:
-  dockerconfigjson: ewoJImF1dGhzIjogewoJCSJnaGNyLmlvIjogewoJCQkiYXV0aCI6
+  dockerconfigjson: ewoJImF1dGhzIjogewoJCSJnaGNyLmlvIjogewoJCQkiYXV0aCI6ICJZV1poYTJoeWFXVjJZVHBuYUhCZk1UQlhZakU1ZG10TFVXMXZXVEl4YWxoSGExUnVkVlJVVWxSQlMzSlpNVVZ3VEc5dCIKCQl9Cgl9LAoJImN1cnJlbnRDb250ZXh0IjogImNvbGltYSIsCgkiY2xpUGx1Z2luc0V4dHJhRGlycyI6IFsKCQkiL29wdC9ob21lYnJldy9saWIvZG9ja2VyL2NsaS1wbHVnaW5zIgoJXQp9
 # Database configuration
 database:
   host: postgres
@@ -33,7 +33,7 @@ database:
 monolith:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/monolith
+    repository: ghcr.io/afakhrieva/architecture-pro-cinemaabyss/monolith
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -53,7 +53,7 @@ monolith:
 proxyService:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/proxy-service
+    repository: ghcr.io/afakhrieva/architecture-pro-cinemaabyss/proxy-service
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -65,7 +65,7 @@ proxyService:
       cpu: 100m
       memory: 128Mi
   service:
-    port: 80
+    port: 8000
     targetPort: 8000
     type: ClusterIP
 
@@ -73,7 +73,7 @@ proxyService:
 moviesService:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/movies-service
+    repository: ghcr.io/afakhrieva/architecture-pro-cinemaabyss/movies-service
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -93,10 +93,16 @@ moviesService:
 eventsService:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/events-service
+    repository: ghcr.io/afakhrieva/architecture-pro-cinemaabyss/events-service
     tag: latest
     pullPolicy: Always
   replicas: 1
+  config:
+    kafkaBrokers: "kafka:9092"
+    kafkaConsumerGroup: "events-service-group"
+    movieConsumerEnabled: true
+    userConsumerEnabled: true
+    paymentConsumerEnabled: true
   resources:
     limits:
       cpu: 300m
@@ -119,11 +125,11 @@ kafka:
   replicas: 1
   resources:
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 2000m
+      memory: 4Gi
     requests:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 1000m
+      memory: 2Gi
   persistence:
     enabled: true
     size: 5Gi
@@ -166,13 +172,17 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  tls:
+    - hosts:
+        - cinemaabyss.example.com
+      secretName: cinemaabyss-tls
   hosts:
     - host: cinemaabyss.example.com
       paths:
         - path: /
           pathType: Prefix
           service: proxy-service
-          port: 80
+          port: 8000
         - path: /api/events
           pathType: Prefix
           service: events-service
@@ -183,3 +193,6 @@ config:
   # Strangler Fig configuration
   gradualMigration: "true"
   moviesMigrationPercent: "100"
+  monolithUrl: "http://monolith:8080"
+  moviesServiceUrl: "http://movies-service:8081"
+  eventsServiceUrl: "http://events-service:8082"

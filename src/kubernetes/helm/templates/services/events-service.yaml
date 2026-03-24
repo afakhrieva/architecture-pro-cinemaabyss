@@ -25,7 +25,46 @@ spec:
     spec:
       containers:
       - name: events-service
-       .... тут
+        image: {{ .Values.eventsService.image.repository }}:{{ .Values.eventsService.image.tag }}
+        imagePullPolicy: {{ .Values.eventsService.image.pullPolicy }}
+        ports:
+          - containerPort: {{ .Values.eventsService.service.targetPort }}
+        env:
+          - name: PORT
+            value: "{{ .Values.eventsService.service.port }}"
+          - name: KAFKA_BROKERS
+            value: "{{ .Values.eventsService.config.kafkaBrokers }}"
+          - name: KAFKA_CONSUMER_GROUP
+            value: "{{ .Values.eventsService.config.kafkaConsumerGroup }}"
+          - name: MOVIE_CONSUMER_ENABLED
+            value: "{{ .Values.eventsService.config.movieConsumerEnabled }}"
+          - name: USER_CONSUMER_ENABLED
+            value: "{{ .Values.eventsService.config.userConsumerEnabled }}"
+          - name: PAYMENT_CONSUMER_ENABLED
+            value: "{{ .Values.eventsService.config.paymentConsumerEnabled }}"
+        envFrom:
+          - configMapRef:
+              name: cinemaabyss-config
+          - secretRef:
+              name: cinemaabyss-secrets
+        resources:
+          {{- toYaml .Values.eventsService.resources | nindent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /api/events/health
+            port: {{ .Values.eventsService.service.targetPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/events/health
+            port: {{ .Values.eventsService.service.targetPort }}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: dockerconfigjson
+
 ---
 apiVersion: v1
 kind: Service
@@ -37,5 +76,10 @@ metadata:
     app.kubernetes.io/name: {{ include "cinemaabyss.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
- ........ и тут
+  selector:
+    app: events-service
+  ports:
+    - port: {{ .Values.eventsService.service.port }}
+      targetPort: {{ .Values.eventsService.service.targetPort }}
+  type: {{ .Values.eventsService.service.type }}
 {{- end }}

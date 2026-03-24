@@ -134,6 +134,7 @@ spec:
         - containerPort: 9092
           name: kafka
         resources:
+          #добавила памяти, тк иначе у меня кафка постоянно падала
           requests:
             memory: "2Gi"
             cpu: "1000m"
