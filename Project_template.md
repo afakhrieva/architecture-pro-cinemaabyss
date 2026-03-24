@@ -467,7 +467,9 @@ You can see 21 for the upstream_rq_pending_overflow value which means 21 calls s
 ```
 
 Приложите скриншот работы circuit breaker'а
-
+![Screenshot 2026-03-24 at 23.13.24.png](screenshots/fortio/Screenshot%202026-03-24%20at%2023.13.24.png)
+![Screenshot 2026-03-24 at 23.13.35.png](screenshots/fortio/Screenshot%202026-03-24%20at%2023.13.35.png)
+![Screenshot 2026-03-24 at 23.14.48.png](screenshots/fortio/Screenshot%202026-03-24%20at%2023.14.48.png)
 Удаляем все
 ```bash
 istioctl uninstall --purge
