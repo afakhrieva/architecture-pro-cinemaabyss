@@ -32,6 +32,8 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api")
 
+    implementation("org.xerial.snappy:snappy-java:1.1.10.5")
+
     testImplementation("org.springframework.boot:spring-boot-starter-kafka-test")
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

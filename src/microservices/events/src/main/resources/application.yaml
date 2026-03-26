@@ -10,7 +10,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
       acks: all
       retries: 3
-      compression-type: snappy
+      compression-type: none
       batch-size: 16384
       buffer-memory: 33554432
       properties:

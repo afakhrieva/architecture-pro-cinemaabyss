@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
@@ -19,8 +19,14 @@ COPY src ./src
 # Собираем приложение
 RUN ./gradlew clean build --no-daemon -x test
 
-# Копируем jar
-RUN cp build/libs/*.jar app.jar
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+# Устанавливаем snappy
+RUN apk add --no-cache snappy
+
+COPY --from=builder /app/build/libs/app.jar app.jar
 
 # Порт
 EXPOSE 8082
