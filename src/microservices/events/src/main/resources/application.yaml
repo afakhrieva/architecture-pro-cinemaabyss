@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: events-service
+
+  # Kafka конфигурация
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      retries: 3
+      compression-type: none
+      batch-size: 16384
+      buffer-memory: 33554432
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        spring.json.trusted.packages: "ru.yandex.practicum.arch.cinema.events.dto"
+        spring.json.add.type.headers: false
+
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:events-service-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.yandex.practicum.arch.cinema.events.dto"
+        spring.json.value.default.type: "ru.yandex.practicum.arch.cinema.events.dto.Event"
+        spring.json.use.type.headers: false
+      enable-auto-commit: false
+      max-poll-records: 500
+
+server:
+  port: ${PORT:8082}
+
+logging:
+  level:
+    ru.yandex.practicum.arch.cinema.events : DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Названия топиков
+topics:
+  movie-events: movie-events
+  user-events: user-events
+  payment-events: payment-events
+
+# ФЛАГИ ВКЛЮЧЕНИЯ CONSUMER
+consumer:
+  movie:
+    enabled: ${MOVIE_CONSUMER_ENABLED:true}
+  user:
+    enabled: ${USER_CONSUMER_ENABLED:true}
+  payment:
+    enabled: ${PAYMENT_CONSUMER_ENABLED:true}

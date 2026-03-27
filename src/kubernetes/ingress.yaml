@@ -7,12 +7,15 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
+  tls:
+    - hosts:
+        - cinemaabyss.example.com
+      secretName: cinemaabyss-tls
   rules:
     - host: cinemaabyss.example.com
       http:
         paths:
-          #дополните конфигурацию для /
-          ...
+          # События - напрямую в events-service
           - path: /api/events
             pathType: Prefix
             backend:
@@ -20,3 +23,12 @@ spec:
                 name: events-service
                 port:
                   number: 8082
+
+          # Корневой путь - proxy-service
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: proxy-service
+                port:
+                  number: 8000

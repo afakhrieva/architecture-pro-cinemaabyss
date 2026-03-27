@@ -96,6 +96,9 @@ services:
     environment:
       PORT: 8082
       KAFKA_BROKERS: kafka:9092
+      MOVIE_CONSUMER_ENABLED: ${MOVIE_CONSUMER_ENABLED}
+      USER_CONSUMER_ENABLED: ${USER_CONSUMER_ENABLED}
+      PAYMENT_CONSUMER_ENABLED: ${PAYMENT_CONSUMER_ENABLED}
     networks:
       - cinemaabyss-network
 

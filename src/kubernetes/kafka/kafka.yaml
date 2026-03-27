@@ -134,12 +134,13 @@ spec:
         - containerPort: 9092
           name: kafka
         resources:
+          #добавила памяти, тк иначе у меня кафка постоянно падала
           requests:
-            memory: "512Mi"
-            cpu: "200m"
-          limits:
-            memory: "1Gi"
+            memory: "2Gi"
             cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
         env:
         - name: KAFKA_ADVERTISED_LISTENERS
           value: PLAINTEXT://kafka:9092

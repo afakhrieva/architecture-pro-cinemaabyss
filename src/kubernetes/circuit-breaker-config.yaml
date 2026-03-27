@@ -1,0 +1,98 @@
+# CIRCUIT BREAKER для proxy-service (API Gateway)
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: proxy-circuit-breaker
+  namespace: cinemaabyss
+spec:
+  host: proxy-service.cinemaabyss.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        # Максимум TCP соединений к прокси. Прокси — точка входа, поэтому разрешаем больше соединений.
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 200
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      # После 5 ошибок 5xx отключаем под прокси.
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+
+# CIRCUIT BREAKER для monolith
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: monolith-circuit-breaker
+  namespace: cinemaabyss
+spec:
+  host: monolith.cinemaabyss.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        # Максимум TCP соединений к монолиту.
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 10
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+
+# CIRCUIT BREAKER для movies-service
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: movies-circuit-breaker
+  namespace: cinemaabyss
+spec:
+  host: movies-service.cinemaabyss.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 20
+        http2MaxRequests: 200
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      # Более агрессивно для микросервиса: после 3 ошибок отключаем.
+      consecutive5xxErrors: 3
+      interval: 20s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 100
+      minHealthPercent: 30
+
+# CIRCUIT BREAKER для events-service
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: events-circuit-breaker
+  namespace: cinemaabyss
+spec:
+  host: events-service.cinemaabyss.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 150
+      http:
+        http1MaxPendingRequests: 30
+        http2MaxRequests: 150
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 45s
+      maxEjectionPercent: 70
+      minHealthPercent: 40
