@@ -34,8 +34,6 @@ func (t *MovieTransformer) TransformStream(body io.ReadCloser, w io.Writer) erro
 		}
 	}
 
-	log.Printf("[Transformer] Заглушка: данные переданы без изменений (здесь могла быть трансформация)")
-
 	// Просто передаем данные без изменений
 	_, err = w.Write(data)
 	return err

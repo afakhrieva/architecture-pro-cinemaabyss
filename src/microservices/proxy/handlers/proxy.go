@@ -78,7 +78,7 @@ func (h *ProxyHandler) determineMoviesTarget(path, rawQuery, method string) stri
 	}
 
 	// Только для GET запросов применяем процентную миграцию
-	if method == http.MethodGet && utils.ShouldRouteToNewService(h.config.MoviesMigrationPercent, path, rawQuery, method) {
+	if method == http.MethodGet && utils.ShouldRouteToNewService(h.config.MoviesMigrationPercent) {
 		return "movies-service"
 	}
 
@@ -127,7 +127,6 @@ func (h *ProxyHandler) proxyRequest(w http.ResponseWriter, r *http.Request, targ
 
 	// Применяем трансформацию если нужно
 	if shouldTransform {
-		log.Printf("[Proxy] Applying transformation for %s %s", r.Method, r.URL.Path)
 		if err := h.transformer.TransformStream(resp.Body, w); err != nil {
 			log.Printf("Error in transformer: %v", err)
 			// В случае ошибки пробуем отдать оригинал

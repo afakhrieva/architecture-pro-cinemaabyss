@@ -1,12 +1,11 @@
 package utils
 
 import (
-	"crypto/md5"
-	"encoding/binary"
+	"math/rand/v2"
 )
 
 // ShouldRouteToNewService определяет, должен ли запрос идти в новый сервис
-func ShouldRouteToNewService(percent int, path, rawQuery, method string) bool {
+func ShouldRouteToNewService(percent int) bool {
 	if percent <= 0 {
 		return false
 	}
@@ -14,12 +13,8 @@ func ShouldRouteToNewService(percent int, path, rawQuery, method string) bool {
 		return true
 	}
 
-	// Создаем ключ для консистентного хеширования
-	key := path + ":" + rawQuery + ":" + method
-	// Вычисляем хеш
-	hash := md5.Sum([]byte(key))
-	value := binary.BigEndian.Uint64(hash[:8])
+	value := rand.IntN(100)
 
 	// Определяем, попадает ли запрос в процент миграции
-	return value%100 < uint64(percent)
+	return value%100 < percent
 }
